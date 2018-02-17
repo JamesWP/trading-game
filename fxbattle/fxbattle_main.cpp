@@ -41,6 +41,23 @@ void save_market(const exchange::Market& market, std::string filename)
     fw.close();
 }
 
+struct Timer 
+{
+
+  std::chrono::high_resolution_clock::time_point start;
+
+  Timer() : start{std::chrono::high_resolution_clock::now()} {}
+  ~Timer()
+  {
+    auto finish = std::chrono::high_resolution_clock::now();
+
+    uint64_t microseconds =
+        std::chrono::duration_cast<std::chrono::microseconds>(finish - start)
+            .count();
+    std::cout << "micros: " << microseconds << '\n';
+  }
+};
+
 int main(int argc, const char* argv[])
 {
     using namespace exchange;
@@ -106,6 +123,7 @@ int main(int argc, const char* argv[])
     });
 
     CROW_ROUTE(app, "/market")([&market]{
+        Timer timing;
         crow::json::wvalue x;
         const auto quotes = market.get_all_quotes();
         for (const auto& quote: quotes) {
@@ -115,6 +133,7 @@ int main(int argc, const char* argv[])
     });
 
     CROW_ROUTE(app, "/accounts")([&brokerage]{
+        Timer timing;
         crow::json::wvalue x;
         const auto accounts = brokerage.accounts_under_management("GBP");
         for (const auto& [name, balance]: accounts) {
@@ -124,6 +143,7 @@ int main(int argc, const char* argv[])
     });
 
     CROW_ROUTE(app, "/account/<string>")([&brokerage](const auto& api_key){
+        Timer timing;
         crow::json::wvalue x;
         try {
             const auto holdings = brokerage.get_holdings(api_key);
@@ -142,6 +162,7 @@ int main(int argc, const char* argv[])
                   const auto& direction,
                   const auto& ccy_pair,
                   double amount) {
+        Timer timing;
         crow::json::wvalue x;
         try {
             if (ccy_pair.size() != 6) throw std::runtime_error("Wrong ccy pair");
