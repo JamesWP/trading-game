@@ -35,11 +35,10 @@ private:
   
   Metrics _metrics{_pool, std::chrono::seconds(5)};
 
-  //MetricTag _prefix{"FXBattle"};
+  MetricTag _prefix{"FXBattle"};
 
   Console _sink;
-  //Graphite _gsink(_pool.getService(), _prefix, "127.0.0.1", "2003");
-  
+  Graphite _gsink{_pool.getService(), _prefix, "127.0.0.1", "2003"};
 
   MetricTag _tag;
 public:

@@ -18,14 +18,14 @@ all: fxbattle
 exchange: test
 
 fxbattle: test static
-	cd build && cmake --build . --target FXBattle.exe
+	cd build && cmake --build . --target FXBattle.exe -- -j3
 	./build/FXBattle.exe config.json traded_pairs.json traders.json
 
 static: build
-	cd build && cmake --build . --target static
+	cd build && cmake --build . --target static -- -j3
 
 test: build
-	cd build && cmake --build . --target Test.exe
+	cd build && cmake --build . --target Test.exe -- -j3
 	./build/Test.exe --reporter=spec
 
 build:
