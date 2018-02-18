@@ -26,10 +26,11 @@ file(GLOB fxbattle_SRC
 add_executable(Test.exe ${test_SRC})
 
 # service
+set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 add_executable(FXBattle.exe ${fxbattle_SRC})
 target_link_libraries(FXBattle.exe ${Boost_LIBRARIES})
 target_link_libraries(FXBattle.exe ${CMAKE_THREAD_LIBS_INIT})
-
+target_link_libraries(FXBattle.exe commonpp)
 # static files
 add_custom_command(OUTPUT index.html
     COMMAND ${CMAKE_COMMAND} -E

@@ -8,6 +8,9 @@ TEST_SOURCES += test/exchange_arbitragedestroyer.test.cpp
 TEST_SOURCES += test/exchange_fxconversions.test.cpp
 TEST_SOURCES += test/exchange_fxconverter.test.cpp
 
+CMAKE_GEN=
+CMAKE_GEN=Ninja
+
 all: fxbattle
 
 .PHONY: test exchange fxbattle
@@ -15,20 +18,20 @@ all: fxbattle
 exchange: test
 
 fxbattle: test static
-	cd build && make FXBattle.exe
+	cd build && cmake --build . --target FXBattle.exe
 	./build/FXBattle.exe config.json traded_pairs.json traders.json
 
 static: build
-	cd build && make static
+	cd build && cmake --build . --target static
 
 test: build
-	cd build && make Test.exe
+	cd build && cmake --build . --target Test.exe
 	./build/Test.exe --reporter=spec
 
 build:
 	mkdir build
 	mkdir build/templates
-	cd build && cmake ..
+	cd build && cmake -DCMAKE_BUILD_TYPE=Release -G "${CMAKE_GEN}" ..
 
 clean:
 	rm -rf build

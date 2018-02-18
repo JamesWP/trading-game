@@ -6,8 +6,11 @@
 #include <exchange_brokerage.h>
 #include <fxbattle_configuration.h>
 #include <fxbattle_cachelessjsonresponse.h>
+#include <fxbattle_metrics.h>
 #include <thread>
 #include <chrono>
+#include <atomic>
+
 
 using namespace fxbattle;
 
@@ -96,6 +99,20 @@ int main(int argc, const char* argv[])
     });
 
     //--------------------------------------------------------------------------
+
+    FxMetrics met("fxbattle_metr");
+
+    met.start();
+
+    FxMetrics::metric_name api_timer;
+    std::atomic<uint64_t> api_hitcount; 
+
+    met.register_metric(api_timer, "api_timer");
+    met.register_metric("api_hitcount", [&api_hitcount](){ 
+      uint64_t value = api_hitcount.load(std::memory_order_relaxed);
+      return value;
+    });
+
     crow::SimpleApp app;
 
     CROW_ROUTE(app, "/")([](){
@@ -104,8 +121,10 @@ int main(int argc, const char* argv[])
         auto page = crow::mustache::load("index.html");
         return page.render(x);
     });
-
-    CROW_ROUTE(app, "/market")([&market]{
+  
+    CROW_ROUTE(app, "/market")([&market, &api_timer, &api_hitcount]{
+        FxMetrics::scope_timer t(api_timer);
+        api_hitcount++;
         crow::json::wvalue x;
         const auto quotes = market.get_all_quotes();
         for (const auto& quote: quotes) {
@@ -114,7 +133,9 @@ int main(int argc, const char* argv[])
         return CachelessJsonResponse{x};
     });
 
-    CROW_ROUTE(app, "/accounts")([&brokerage]{
+    CROW_ROUTE(app, "/accounts")([&brokerage, &api_timer, &api_hitcount]{
+        FxMetrics::scope_timer t(api_timer);
+        api_hitcount++;
         crow::json::wvalue x;
         const auto accounts = brokerage.accounts_under_management("GBP");
         for (const auto& [name, balance]: accounts) {
@@ -123,25 +144,30 @@ int main(int argc, const char* argv[])
         return CachelessJsonResponse{x};
     });
 
-    CROW_ROUTE(app, "/account/<string>")([&brokerage](const auto& api_key){
-        crow::json::wvalue x;
-        try {
-            const auto holdings = brokerage.get_holdings(api_key);
-            for (const auto& [ccy, balance]: holdings) {
-                x[ccy] = balance;
-            }
+    CROW_ROUTE(app, "/account/<string>")
+    ([&brokerage, &api_timer, &api_hitcount](const auto &api_key) {
+      FxMetrics::scope_timer t(api_timer);
+      api_hitcount++;
+      crow::json::wvalue x;
+      try {
+        const auto holdings = brokerage.get_holdings(api_key);
+        for (const auto & [ ccy, balance ] : holdings) {
+          x[ccy] = balance;
         }
-        catch (std::runtime_error& e) {
-            x["error"] = e.what();
-        }
-        return CachelessJsonResponse{x};
+      }
+      catch (std::runtime_error &e) {
+        x["error"] = e.what();
+      }
+      return CachelessJsonResponse{x};
     });
 
     CROW_ROUTE(app, "/trade/<string>/<string>/<string>/<double>")
-    ([&brokerage](const auto& api_key,
+    ([&brokerage, &api_timer, &api_hitcount](const auto& api_key,
                   const auto& direction,
                   const auto& ccy_pair,
                   double amount) {
+        FxMetrics::scope_timer t(api_timer);
+        api_hitcount++;
         crow::json::wvalue x;
         try {
             if (ccy_pair.size() != 6) throw std::runtime_error("Wrong ccy pair");
@@ -162,6 +188,7 @@ int main(int argc, const char* argv[])
         return CachelessJsonResponse{x};
     });
 
+    app.loglevel(crow::LogLevel::Warning);
     app.port(config["port"].i()).multithreaded().run();
 }
 
