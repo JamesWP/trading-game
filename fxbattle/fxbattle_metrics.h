@@ -53,6 +53,7 @@ public:
     _pool.start();
 
     _metrics.addMetricsReceiver(std::ref(_sink));
+    _metrics.addMetricsReceiver(std::ref(_gsink));
   }
 
   void stop() { _pool.stop(); }

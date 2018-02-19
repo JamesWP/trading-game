@@ -105,9 +105,11 @@ int main(int argc, const char* argv[])
     met.start();
 
     FxMetrics::metric_name api_timer;
+
     std::atomic<uint64_t> api_hitcount; 
 
     met.register_metric(api_timer, "api_timer");
+
     met.register_metric("api_hitcount", [&api_hitcount](){ 
       uint64_t value = api_hitcount.load(std::memory_order_relaxed);
       return value;
